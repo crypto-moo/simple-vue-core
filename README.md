@@ -83,9 +83,9 @@ module.exports = {
 }
 ```
 
-## 项目核心
-### reactivity
-#### 1、单元测试
+## 项目核心 - reactivity
+### 1、实现reactive、effect、依赖收集、依赖触发
+#### 1.1 单元测试
 reactive.spec.ts：验证代理功能
 ```
 import { reactive } from "../reactive"
@@ -146,7 +146,7 @@ describe('effect', () => {
     })
 })
 ```
-#### 2、功能实现
+#### 1.2 功能实现
 reactive.ts
 ```
 import { track, trigger } from "./effect"

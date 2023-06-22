@@ -83,6 +83,140 @@ module.exports = {
 }
 ```
 
+## 项目核心
+### reactivity
+#### 1、单元测试
+reactive.spec.ts：验证代理功能
+```
+import { reactive } from "../reactive"
+
+describe('reactive', () => {
+    it('core', () => {
+        const obj = {foo: 1}
+        const rxObj = reactive(obj)
+
+        expect(obj).not.toBe(rxObj)
+
+        expect(obj.foo).toBe(rxObj.foo)
+    })
+})
+```
+effect.spec.ts：副作用，依赖收集、依赖触发
+```
+import { effect } from "../effect"
+import { reactive } from "../reactive"
+
+describe('effect', () => {
+    it('core', () => {
+        const obj = {
+            num: 1,
+            name: 'abc'
+        }
+        const rxObj = reactive(obj)
+
+        let num
+        effect(() => {
+            num = rxObj.num + 1
+        })
+
+        expect(num).toBe(2)
+
+        let num1
+        effect(() => {
+            num1 = rxObj.num + 1
+        })
+        rxObj.num++
+        expect(num).toBe(3)
+        expect(num1).toBe(3)
+        rxObj.name = 'def'
+    })
+
+    it('runner', () => {
+        let num = 1
+        const runner = effect(() => {
+            num++
+            return 'effect'
+        })
+
+        expect(num).toBe(2)
+
+        const res = runner()
+        expect(num).toBe(3)
+        expect(res).toBe('effect')
+    })
+})
+```
+#### 2、功能实现
+reactive.ts
+```
+import { track, trigger } from "./effect"
+
+export function reactive(obj: any): any {
+    return new Proxy(obj, {
+        get(target, p, receiver) {
+            const result = Reflect.get(target, p, receiver)
+            // 访问了该属性，需要收集依赖
+            track(target, p)
+            return result
+        },
+        set(target, p, newValue) {
+            const result = Reflect.set(target, p, newValue)
+            // 设置了该属性，需要触发依赖
+            trigger(target, p)
+            return result
+        }
+    })
+}
+```
+> 问题：如果报错找不到Proxy，需要再tsconfig.json - compilerOptions 设置"lib": ["DOM", "ES6"]
+
+effect.ts
+```
+class ReactiveEffect {
+    private _fn: Function;
+
+    constructor(fn: Function) {
+        this._fn = fn
+    }
+
+    run() {
+        return this._fn()
+    }
+}
+
+let dep: ReactiveEffect
+export function effect(fn: Function) {
+    const _re = new ReactiveEffect(fn)
+    dep = _re
+    _re.run()
+    return _re.run.bind(_re)
+}
+
+const targetMap = new Map<any, {[_: string | symbol]: ReactiveEffect[]}>()
+export function track(target: any, p: string | symbol) {
+    let fnMap = targetMap.get(target)
+    if (!fnMap) {
+        fnMap = {}
+        targetMap.set(target, fnMap)
+    }
+    let deps = fnMap[p]
+    if (!deps) {
+        deps = []
+        fnMap[p] = deps
+    }
+    deps.push(dep)
+}
+
+export function trigger(target: any, p: string |symbol) {
+    const _fnMap = targetMap.get(target)
+    if (!_fnMap) return
+    const deps = _fnMap[p]
+    if (!deps) return
+    deps.forEach(dep => dep.run())
+}
+```
+
+
 
 
 

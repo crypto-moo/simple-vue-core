@@ -1,7 +1,11 @@
+import { extend } from "../shared";
 
 class ReactiveEffect {
     private _fn: Function;
+    private _active = true;
     scheduler: Function | undefined;
+    deps: ReactiveEffect[] = [];
+    onStop: Function | undefined;
 
     constructor(fn: Function, scheduler?: Function) {
         this._fn = fn
@@ -9,12 +13,31 @@ class ReactiveEffect {
     }
 
     run() {
-        dep = this
+        // dep = this // 如果写在这里，每次runner执行都会触发收集依赖，不合理，所以注释
         // 执行effect函数，如果该函数调用了响应对象的get方法，则会收集依赖，添加dep到依赖对象
         const res = this._fn()
         // 依赖收集完毕，需要把dep置为undefined，避免每次执行响应对象get方法都重复收集
-        dep = undefined
+        // dep = undefined
         return res
+    }
+
+    stop() {
+        if (this._active) {
+            this._active = false
+            cleanupEffect(this)
+        }
+    }
+}
+
+function cleanupEffect(effect: ReactiveEffect) {
+    const index = effect.deps.indexOf(effect)
+    if (index > -1)  {
+        console.log('清除前deps：', effect.deps.length);
+        effect.deps.splice(index, 1)
+        console.log('清除后deps：', effect.deps.length);
+    }
+    if (effect.onStop) {
+        effect.onStop()
     }
 }
 
@@ -23,8 +46,14 @@ export function effect(fn: Function, options: any = {}) {
     const scheduler = options.scheduler
     // 每个effect方法、options回有一个对应的ReactiveEffect对象
     const _re = new ReactiveEffect(fn, scheduler)
+    // 把options属性全部赋值给ReactiveEffect对象
+    extend(_re, options)
+    dep = _re
     _re.run()
-    return _re.run.bind(_re)
+    dep = undefined
+    const runner = _re.run.bind(_re)
+    runner.effect = _re;
+    return runner
 }
 
 const targetMap = new Map<any, {[_: string | symbol]: ReactiveEffect[]}>()
@@ -41,9 +70,10 @@ export function track(target: any, p: string | symbol) {
     if (!deps) {
         deps = []
         fnMap[p] = deps
+        dep.deps = deps
     }
-    console.log('收集依赖：', target, p, dep);
     deps.push(dep)
+    console.log('收集依赖：', deps.length, target, p, dep);
 }
 
 export function trigger(target: any, p: string |symbol) {
@@ -60,4 +90,8 @@ export function trigger(target: any, p: string |symbol) {
             dep.run()
         }
     })
+}
+
+export function stop(runner: Function) {
+    runner.effect.stop()
 }

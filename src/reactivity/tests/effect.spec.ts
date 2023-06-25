@@ -76,10 +76,11 @@ describe('effect', () => {
         rxObj.num = 2
         expect(num).toBe(2)
         stop(runner)
-        rxObj.num = 3
+        rxObj.num++
+        rxObj.num++
         expect(num).toBe(2)
         runner()
-        expect(num).toBe(3)
+        expect(num).toBe(4)
     })
 
     it('on stop', () => {

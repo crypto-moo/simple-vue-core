@@ -555,3 +555,82 @@ export function readonly(raw: any): any {
     return new Proxy(raw, readonlyHandlers)
 }
 ```
+
+### 5、实现isReactive、isReadonly以及对象对应reactive、readonly嵌套转化
+#### 5.1 单元测试
+reactive.spec.ts
+```
+describe('reactive', () => {
+    it('core', () => {
+        ...
+
+        expect(isReactive(rxObj)).toBe(true)
+        expect(isReactive(obj)).toBe(false)
+    })
+
+    it('nested reactive', () => {
+        const obj = {
+            nested: {
+                foo: 1
+            },
+            array: [1, 2, 3]
+        }
+        const rxObj = reactive(obj)
+        expect(isReactive(rxObj)).toBe(true)
+        expect(isReactive(rxObj.nested)).toBe(true)
+        expect(isReactive(rxObj.array)).toBe(true)
+    })
+})
+```
+readonly.spec.ts
+```
+describe('readonly', () => {
+    it('core', () => {
+        const obj = {
+            num: 1,
+            foo: {
+                name: 'foo'
+            }
+        }
+        ...
+        expect(isReadonly(rxObj)).toBe(true)
+        expect(isReadonly(obj)).toBe(false)
+        expect(isReadonly(rxObj.foo)).toBe(true)
+    })
+})
+```
+#### 5.2 功能实现
+reactive.ts
+```
+export const enum ReactiveFlags {
+    IS_REACTIVE = '__v_isReactive',
+    IS_READONLY = '__v_isReadonly'
+}
+
+...
+
+export function isReactive(value: any) {
+    return !!value[ReactiveFlags.IS_REACTIVE]
+}
+
+export function isReadonly(value: any) {
+    return !!value[ReactiveFlags.IS_READONLY]
+}
+```
+baseHandlers.ts
+```
+function createGetter(isReadonly: boolean = false) {
+    return function(target: any, p: string | symbol, receiver: unknown) {
+        if (p === ReactiveFlags.IS_REACTIVE) {
+            return !isReadonly
+        } else if (p === ReactiveFlags.IS_READONLY) {
+            return isReadonly
+        }
+        ...
+        if (isObject(result)) {
+            return isReadonly ? readonly(result) : reactive(result)
+        }
+        ...
+    }
+}
+```

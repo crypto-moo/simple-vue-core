@@ -800,4 +800,85 @@ export function triggerEffect(deps: ReactiveEffect[]) {
     })
 }
 ```
+### 7、实现isRef、unRef、proxyRefs
+#### 7.1 单元测试
+```
+describe('ref', () => {
+    ...
+
+    it('is ref', () => {
+        const refObj = ref(1)
+        const rxObj = reactive({name: 'wawa'})
+        expect(isRef(refObj)).toBe(true)
+        expect(isRef(1)).toBe(false)
+        expect(isRef(rxObj)).toBe(false)
+    })
+
+    it.skip('un ref', () => {
+        const refObj = ref(1)
+        expect(unRef(refObj)).toBe(1)
+        const obj = {name: 'wawa'}
+        const refObj1 = ref(obj)
+        expect(unRef(refObj1)).toBe(obj)
+    })
+
+    it.only('proxy refs', () => {
+        const obj = {
+            user: ref('wawa'),
+            age: 20
+        }
+        const pr = proxyRefs(obj)
+        expect(obj.user.value).toBe('wawa')
+        expect(pr.user).toBe('wawa')
+        expect(pr.age).toBe(20)
+
+        pr.user = 'haha'
+        expect(obj.user.value).toBe('haha')
+        expect(pr.user).toBe('haha')
+        expect(pr.age).toBe(20)
+
+        pr.user = 'gaga'
+        pr.age = 30
+        expect(obj.user.value).toBe('gaga')
+        expect(pr.user).toBe('gaga')
+        expect(pr.age).toBe(30)
+    })
+})
+```
+#### 7.2 功能实现
+```
+
+class RefImpl {
+    __v_isRef = true
+    
+    ...
+
+    get rawValue() {
+        return this._rawValue
+    }
+}
+
+export function isRef(refVal: RefImpl | any) {
+    return !!refVal.__v_isRef
+}
+
+export function unRef(refVal: RefImpl | any) {
+    return isRef(refVal) ? refVal.rawValue : refVal
+}
+
+export function proxyRefs(refObj: any) {
+    return new Proxy(refObj, {
+        get(target, p, receiver) {
+            const result = Reflect.get(target, p, receiver)
+            return unRef(result)
+        },
+        set(target, p, val, receiver) {
+            if (isRef(target[p]) && !isRef(val)) {
+                return target[p].value = val
+            }
+            return Reflect.set(target, p, val, receiver)
+        }
+    })
+}
+```
 

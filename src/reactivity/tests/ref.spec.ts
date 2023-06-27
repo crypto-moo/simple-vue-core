@@ -1,5 +1,6 @@
 import { effect } from "../effect"
-import { ref } from "../ref"
+import { reactive } from "../reactive"
+import { isRef, proxyRefs, ref, unRef } from "../ref"
 
 describe('ref', () => {
     it('core', () => {
@@ -38,5 +39,43 @@ describe('ref', () => {
         refObj.value = obj
         expect(foo).toBe(2)
 
+    })
+
+    it('is ref', () => {
+        const refObj = ref(1)
+        const rxObj = reactive({name: 'wawa'})
+        expect(isRef(refObj)).toBe(true)
+        expect(isRef(1)).toBe(false)
+        expect(isRef(rxObj)).toBe(false)
+    })
+
+    it.skip('un ref', () => {
+        const refObj = ref(1)
+        expect(unRef(refObj)).toBe(1)
+        const obj = {name: 'wawa'}
+        const refObj1 = ref(obj)
+        expect(unRef(refObj1)).toBe(obj)
+    })
+
+    it.only('proxy refs', () => {
+        const obj = {
+            user: ref('wawa'),
+            age: 20
+        }
+        const pr = proxyRefs(obj)
+        expect(obj.user.value).toBe('wawa')
+        expect(pr.user).toBe('wawa')
+        expect(pr.age).toBe(20)
+
+        pr.user = 'haha'
+        expect(obj.user.value).toBe('haha')
+        expect(pr.user).toBe('haha')
+        expect(pr.age).toBe(20)
+
+        pr.user = 'gaga'
+        pr.age = 30
+        expect(obj.user.value).toBe('gaga')
+        expect(pr.user).toBe('gaga')
+        expect(pr.age).toBe(30)
     })
 })

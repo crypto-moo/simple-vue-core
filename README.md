@@ -634,3 +634,170 @@ function createGetter(isReadonly: boolean = false) {
     }
 }
 ```
+
+### 6、实现shallowReadonly、isProxy、ref功能
+#### 6.1 单元测试
+shallowReadonly.spec.ts
+```
+import { isReactive, isReadonly, readonly, shallowReadonly } from "../reactive"
+
+describe('shallowReadonly', () => {
+    it('core', () => {
+        const obj = {
+            foo: {
+                num: 1
+            }
+        }
+        const srObj = shallowReadonly(obj)
+        const rObj = readonly(obj)
+        expect(isReactive(srObj)).toBe(false)
+        expect(srObj).not.toBe(rObj)
+        expect(isReadonly(srObj)).toBe(true)
+        expect(isReadonly(srObj.foo)).toBe(false)
+    })
+})
+```
+ref.spec.ts
+```
+import { effect } from "../effect"
+import { ref } from "../ref"
+
+describe('ref', () => {
+    it('core', () => {
+        const refFoo = ref(1)
+        expect(refFoo.value).toBe(1)
+
+        let num = 1
+        let foo
+        effect(() => {
+            num++
+            foo = refFoo.value  
+        })
+        expect(num).toBe(2)
+        expect(foo).toBe(1)
+
+        refFoo.value++
+        expect(num).toBe(3)
+        expect(foo).toBe(2)
+
+        refFoo.value = 2
+        expect(num).toBe(3)
+        expect(foo).toBe(2)
+    })
+
+    it('ref is reactive', () => {
+        const obj = {foo: 1}
+        const refObj = ref(obj)
+        let foo
+        effect(() => {
+            foo = refObj.value.foo
+        })
+        expect(foo).toBe(1)
+        refObj.value.foo = 2
+        expect(foo).toBe(2)
+        
+        refObj.value = obj
+        expect(foo).toBe(2)
+
+    })
+})
+```
+#### 6.2 功能实现
+reactive.ts
+```
+import { mutableHandlers, readonlyHandlers, shallowReadonlyHandlers } from "./baseHandlers"
+
+export const enum ReactiveFlags {
+    IS_REACTIVE = '__v_isReactive',
+    IS_READONLY = '__v_isReadonly'
+}
+
+export function creatReactiveObject(raw: any, handlers: ProxyHandler<any>) {
+    return new Proxy(raw, handlers)
+}
+
+export function reactive(raw: any): any {
+    return creatReactiveObject(raw, mutableHandlers)
+}
+
+export function readonly(raw: any): any {
+    return creatReactiveObject(raw, readonlyHandlers)
+}
+
+export function shallowReadonly(raw: any): any {
+    return creatReactiveObject(raw, shallowReadonlyHandlers)
+}
+
+export function isReactive(value: any) {
+    return !!value[ReactiveFlags.IS_REACTIVE]
+}
+
+export function isReadonly(value: any) {
+    return !!value[ReactiveFlags.IS_READONLY]
+}
+
+export function isProxy(value: any) {
+    return isReactive(value) || isReadonly(value)
+}
+```
+ref.ts
+```
+import { hasChanged, isObject } from "../shared";
+import { ReactiveEffect, track, trackEffect, triggerEffect } from "./effect";
+import { reactive } from "./reactive";
+
+class RefImpl {
+    private _rawValue: any;
+    private _value: any
+    deps: ReactiveEffect[]
+
+    constructor(value: any) {
+        this._changeValue(value)
+        this.deps = []
+    }
+
+    get value() {
+        trackEffect(this.deps)
+        return this._value
+    }
+
+    set value(newVal) {
+        if (!hasChanged(this._rawValue, newVal)) return
+        this._changeValue(newVal)
+        triggerEffect(this.deps)
+    }
+
+    _changeValue(newVal: any) {
+        this._rawValue = newVal
+        this._value = isObject(newVal) ? reactive(newVal) : newVal
+    }
+}
+
+export function ref(value: any) {
+    return new RefImpl(value)
+}
+```
+effect.ts
+```
+
+export function trackEffect(deps: ReactiveEffect[]) {
+    if (dep) {
+        deps.push(dep)
+    }
+}
+
+...
+
+export function triggerEffect(deps: ReactiveEffect[]) {
+    if (!deps) return
+    console.log(deps.length);
+    deps.forEach(dep => {
+        if (dep.scheduler) {
+            dep.scheduler()
+        } else {
+            dep.run()
+        }
+    })
+}
+```
+

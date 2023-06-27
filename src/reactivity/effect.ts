@@ -1,6 +1,6 @@
 import { extend } from "../shared";
 
-class ReactiveEffect {
+export class ReactiveEffect {
     private _fn: Function;
     private _active = true;
     scheduler: Function | undefined;
@@ -32,9 +32,9 @@ class ReactiveEffect {
 function cleanupEffect(effect: ReactiveEffect) {
     const index = effect.deps.indexOf(effect)
     if (index > -1)  {
-        console.log('清除前deps：', effect.deps.length);
+        // console.log('清除前deps：', effect.deps.length);
         effect.deps.splice(index, 1)
-        console.log('清除后deps：', effect.deps.length);
+        // console.log('清除后deps：', effect.deps.length);
     }
     if (effect.onStop) {
         effect.onStop()
@@ -72,17 +72,26 @@ export function track(target: any, p: string | symbol) {
         fnMap[p] = deps
         dep.deps = deps
     }
-    deps.push(dep)
+    trackEffect(deps)
     console.log('收集依赖：', deps.length, target, p, dep);
+}
+
+export function trackEffect(deps: ReactiveEffect[]) {
+    if (dep) {
+        deps.push(dep)
+    }
 }
 
 export function trigger(target: any, p: string |symbol) {
     const _fnMap = targetMap.get(target)
     if (!_fnMap) return
     const deps = _fnMap[p]
+    triggerEffect(deps)
+}
+
+export function triggerEffect(deps: ReactiveEffect[]) {
     if (!deps) return
     console.log(deps.length);
-    
     deps.forEach(dep => {
         if (dep.scheduler) {
             dep.scheduler()

@@ -1,4 +1,4 @@
-import { isReadonly, readonly } from "../reactive"
+import { isProxy, isReadonly, readonly } from "../reactive"
 
 describe('readonly', () => {
     it('core', () => {
@@ -15,6 +15,7 @@ describe('readonly', () => {
         expect(isReadonly(rxObj)).toBe(true)
         expect(isReadonly(obj)).toBe(false)
         expect(isReadonly(rxObj.foo)).toBe(true)
+        expect(isProxy(rxObj)).toBe(true)
     })
 
     it('set warning', () => {

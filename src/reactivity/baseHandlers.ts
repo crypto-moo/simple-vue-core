@@ -1,4 +1,4 @@
-import { isObject } from "../shared"
+import { extend, isObject } from "../shared"
 import { track, trigger } from "./effect"
 import { ReactiveFlags, reactive, readonly } from "./reactive"
 
@@ -6,8 +6,9 @@ const get = createGetter()
 const set = createSetter()
 const readonlyGet = createGetter(true)
 const readonlySet = createSetter(true)
+const shallowReadonlyGet = createGetter(true, true)
 
-function createGetter(isReadonly: boolean = false) {
+function createGetter(isReadonly: boolean = false, isShallow: boolean = false) {
     return function(target: any, p: string | symbol, receiver: unknown) {
         // console.log('get', target, p, receiver);
         if (p === ReactiveFlags.IS_REACTIVE) {
@@ -19,6 +20,9 @@ function createGetter(isReadonly: boolean = false) {
         if (!isReadonly) {
             // 访问了该属性，需要收集依赖
             track(target, p)
+        }
+        if (isShallow) {
+            return result
         }
         if (isObject(result)) {
             return isReadonly ? readonly(result) : reactive(result)
@@ -50,3 +54,7 @@ export const readonlyHandlers = {
     get: readonlyGet,
     set: readonlySet
 }
+
+export const shallowReadonlyHandlers = extend({}, readonlyHandlers, {
+    get: shallowReadonlyGet
+})

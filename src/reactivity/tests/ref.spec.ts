@@ -49,7 +49,7 @@ describe('ref', () => {
         expect(isRef(rxObj)).toBe(false)
     })
 
-    it.skip('un ref', () => {
+    it('un ref', () => {
         const refObj = ref(1)
         expect(unRef(refObj)).toBe(1)
         const obj = {name: 'wawa'}
@@ -57,7 +57,7 @@ describe('ref', () => {
         expect(unRef(refObj1)).toBe(obj)
     })
 
-    it.only('proxy refs', () => {
+    it('proxy refs', () => {
         const obj = {
             user: ref('wawa'),
             age: 20

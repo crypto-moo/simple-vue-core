@@ -21,6 +21,14 @@ export class ReactiveEffect {
         return res
     }
 
+    // 这个方法会执行函数，同时触发收集依赖
+    runAndDep() {
+        dep = this
+        const res = this._fn()
+        dep = undefined
+        return res
+    }
+
     stop() {
         if (this._active) {
             this._active = false
@@ -48,9 +56,7 @@ export function effect(fn: Function, options: any = {}) {
     const _re = new ReactiveEffect(fn, scheduler)
     // 把options属性全部赋值给ReactiveEffect对象
     extend(_re, options)
-    dep = _re
-    _re.run()
-    dep = undefined
+    _re.runAndDep()
     const runner = _re.run.bind(_re)
     runner.effect = _re;
     return runner
@@ -73,17 +79,19 @@ export function track(target: any, p: string | symbol) {
         dep.deps = deps
     }
     trackEffect(deps)
-    console.log('收集依赖：', deps.length, target, p, dep);
 }
 
 export function trackEffect(deps: ReactiveEffect[]) {
-    if (dep) {
+    // 收集依赖时判断依赖是否已收集过。deps也可以用Set，可以省略这个判断
+    if (dep && deps.indexOf(dep) < 0) {
         deps.push(dep)
+        // console.log('收集依赖：', deps.length, dep);
     }
 }
 
 export function trigger(target: any, p: string |symbol) {
     const _fnMap = targetMap.get(target)
+    // console.log('触发依赖：', target, p, _fnMap);
     if (!_fnMap) return
     const deps = _fnMap[p]
     triggerEffect(deps)
@@ -91,7 +99,7 @@ export function trigger(target: any, p: string |symbol) {
 
 export function triggerEffect(deps: ReactiveEffect[]) {
     if (!deps) return
-    console.log(deps.length);
+    // console.log(deps.length);
     deps.forEach(dep => {
         if (dep.scheduler) {
             dep.scheduler()

@@ -882,3 +882,87 @@ export function proxyRefs(refObj: any) {
 }
 ```
 
+### 8、实现computed
+#### 8.1 单元测试
+computed.spec.ts
+```
+import { computed } from "../computed"
+import { reactive } from "../reactive"
+
+describe('computed', () =>  {
+    it('core', () => {
+        const obj = {age: 12}
+        const rxObj = reactive(obj)
+        const age = computed(() => {
+            return rxObj.age
+        })
+        // computed核心
+        expect(age.value).toBe(12)
+    })
+
+    it.only('computed lazy', () => {
+        const obj = {age: 12}
+        const rxObj = reactive(obj)
+        const fn = jest.fn(() => {
+            return rxObj.age
+        })
+        const age = computed(fn)
+        // 未获取.value不会调用fn
+        expect(fn).not.toBeCalled()
+        
+        // 获取.value调用一次fn
+        expect(age.value).toBe(12)
+        expect(fn).toBeCalledTimes(1)
+        
+        // 值未改变，重新获取不会调用
+        age.value
+        expect(fn).toBeCalledTimes(1)
+
+        // 改变computed依赖的值，fn不会马上执行
+        rxObj.age = 22
+        expect(fn).toBeCalledTimes(1)
+        // 改变依赖的值，重新调用.value才会重新调用fn
+        expect(age.value).toBe(22)
+        expect(fn).toBeCalledTimes(2)
+    })
+})
+```
+#### 8.2 功能实现
+computed.ts
+```
+import { ReactiveEffect } from "./effect";
+
+// ComputedRefImpl为computed描述对象
+class ComputedRefImpl {
+    // get value时候是否读取缓存
+    private _cache: boolean = false
+    // 上次缓存的值
+    private _value: any
+    // 用于收集依赖
+    private _effect: ReactiveEffect;
+
+    constructor(getter: Function) {
+        this._effect = new ReactiveEffect(getter, () => {
+            // computed函数内部响应式值改变会调用该方法（scheduler），把读取缓存设为false，在get value时会重新计算
+            console.log('*** scheduler *** ');
+            this._cache = false
+        })
+    }
+
+    get value() {
+        // 不读取缓存重新计算，同时以后读取缓存
+        if (!this._cache) {
+            this._cache = true
+            // effect调用runAndDep会执行runner以及触发收集依赖
+            this._value = this._effect.runAndDep()
+        }
+        return this._value
+    }
+}
+
+export function computed(getter: Function) {
+    return new ComputedRefImpl(getter)
+}
+```
+
+

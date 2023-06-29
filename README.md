@@ -111,6 +111,49 @@ module.exports = {
     ]
 }
 ```
+### 9、配置rollup
+安装rollup
+```
+yarn add rollup @rollup/plugin-typescript tslib --dev
+```
+添加rollup.config.js
+```
+import typescript from "@rollup/plugin-typescript"
+
+export default {
+    input: './src/index.ts',
+    output: [
+        {
+            format: 'cjs',
+            file: 'lib/simple-vue.cjs.js'
+        },
+        {
+            format: 'es',
+            file: 'lib/simple-vue.esm.js'
+        }
+    ],
+    plugins: [typescript()]
+}
+```
+package.json
+```
+  "scripts": {
+    ...
+    "build": "rollup -c rollup.config.js"
+  },
+```
+运行 yarn build，报错
+```
+[!] RollupError: Node tried to load your configuration file as CommonJS even though it is likely an ES module. To resolve this, change the extension of your configuration to ".mjs", set "type": "module" in your package.json file or pass the "--bundleConfigAsCjs" flag.
+
+Original error: Cannot use import statement outside a module
+```
+> 解决方案：rollup.config.js使用cjs方式，或者降低rollup版本到2.x
+
+> 如果出现以下警告，说明ts版本过低，使用 npm i -g typescript 安装最新版版本ts，tsc -v可查看ts版本
+```
+@rollup/plugin-typescript TS1005: ',' expected.
+```
 
 ## 项目核心 - reactivity
 

@@ -112,7 +112,7 @@ module.exports = {
 }
 ```
 ### 9、配置rollup
-安装rollup
+安装rollup以及@rollup/plugin-typescript、tslib
 ```
 yarn add rollup @rollup/plugin-typescript tslib --dev
 ```
@@ -149,11 +149,10 @@ package.json
 Original error: Cannot use import statement outside a module
 ```
 > 解决方案：rollup.config.js使用cjs方式，或者降低rollup版本到2.x
-
-> 如果出现以下警告，说明ts版本过低，使用 npm i -g typescript 安装最新版版本ts，tsc -v可查看ts版本
 ```
 @rollup/plugin-typescript TS1005: ',' expected.
 ```
+> 如果出现类似以上警告，说明ts版本过低，使用 npm i -g typescript 安装最新版版本ts，tsc -v可查看ts版本
 
 ## 项目核心 - reactivity
 
@@ -1006,6 +1005,217 @@ class ComputedRefImpl {
 export function computed(getter: Function) {
     return new ComputedRefImpl(getter)
 }
+```
+
+## 项目核心 - runtime-core
+### 1、初始化Component主流程，包含处理Component以及Element
+#### 1.1 createApp
+```
+import { render } from "./renderer"
+import { createVNode } from "./vnode"
+
+// 1、createApp，返回值为带有mount方法的对象
+export function createApp(rootComponent: object) {
+    return {
+        mount(rootContainer: Element) {
+            // 2、创建根组件虚拟节点
+            const vnode = createVNode(rootComponent)
+            // 3、渲染基于根虚拟节点为dom
+            render(vnode, rootContainer)
+        }
+    }
+}
+```
+#### 1.2 vnode、h
+```
+// vnode.ts
+export type VNode = {
+    type: string | object
+    props?: any
+    children?: string | Array<VNode>
+}
+
+export function createVNode(type: string | object, props?: object, children?: string | Array<any>): VNode {
+    return {
+        type,
+        props,
+        children
+    }
+}
+
+// h.ts
+import { VNode, createVNode } from "./vnode";
+
+export function h(type: string, props: any, children: string | Array<VNode>): VNode {
+    return createVNode(type, props, children)
+}
+```
+#### 1.3 renderer
+```
+import { ComponentInstance, createComponentInstance, setupComponent } from "./component"
+import { VNode } from "./vnode"
+
+export function render(vnode: VNode, rootContainer: Element) {
+    // 3.1 调用patch
+    patch(vnode, rootContainer)
+}
+
+function patch(vnode: VNode, rootContainer: Element) {
+    if (typeof vnode.type === 'string') {
+        // console.log(vnode);
+        
+        processElement(vnode, rootContainer)
+    } else if (typeof vnode.type === 'object') {
+        // 3.1.1 处理Component
+        processComponent(vnode, rootContainer)
+    }
+}
+
+function processComponent(vnode: VNode, rootContainer: Element) {
+    // 3.1.2 挂载Component
+    mountComponent(vnode, rootContainer)
+}
+
+function mountComponent(vnode: VNode, rootContainer: Element) {
+    // 3.1.3 创建组件实例对象
+    const instance = createComponentInstance(vnode)
+    // 3.1.4 设置组件相关配置
+    setupComponent(instance)
+    // 3.1.5 设置渲染相关配置，界面展示相关处理
+    setupRenderEffect(instance, vnode, rootContainer)
+}
+
+function setupRenderEffect(instance: ComponentInstance, vnode: VNode, rootContainer: Element) {
+    if (!instance.render) return
+    const treeNode = instance.render()
+    // 3.2 获取到根vnode对象，接下来调用patch处理Element
+    patch(treeNode, rootContainer)
+}
+
+function processElement(vnode: VNode, rootContainer: Element) {
+    mountElement(vnode, rootContainer)
+}
+
+function mountElement(vnode: VNode, rootContainer: Element) {
+    const node = document.createElement(vnode.type as string)
+    if (typeof vnode.children === 'string') {
+        node.textContent = vnode.children
+    } else if (Array.isArray(vnode.children)) {
+        mountChildren(vnode.children, node)
+    }
+    if (vnode.props) {
+        for (const key in vnode.props) {
+            const val = vnode.props[key]
+            node.setAttribute(key, val)
+        }
+    }
+    rootContainer.appendChild(node)
+}
+
+
+
+function mountChildren(children: VNode[], node: HTMLElement) {
+    children.forEach((child) => {
+        patch(child, node)
+    })
+}
+```
+
+#### 1.4 component
+```
+import { VNode } from "./vnode";
+
+export type ComponentInstance = {
+    vnode: VNode
+    type: any
+    setupState?: any
+    render?: Function
+}
+
+export function createComponentInstance(vnode: VNode): ComponentInstance {
+    return {
+        vnode,
+        type: vnode.type as any
+    }
+}
+
+export function setupComponent(instance: ComponentInstance) {
+    // TODO: initProps
+    // TODO: initSlots
+    
+    setupStatefulComponent(instance)
+}
+
+function setupStatefulComponent(instance: ComponentInstance) {
+    const Component = instance.type
+
+    const {
+        setup,
+        render
+    } = Component
+    if (setup) {
+        const setupResult = setup()
+        handleSetupResult(instance, setupResult)
+    }
+    if (render) {
+        instance.render = render
+    }
+}
+
+
+function handleSetupResult(instance: ComponentInstance, setupResult: any) {
+    if (typeof setupResult === 'function') {
+        // TODO:
+    } else if (typeof setupResult === 'object') {
+        instance.setupState = setupResult
+    }
+}
+```
+
+### 2、实现组件代理对象
+component.ts
+```
+function handleSetupResult(instance: ComponentInstance, setupResult: any) {
+    if (typeof setupResult === 'function') {
+        ...
+    } else if (typeof setupResult === 'object') {
+        ...
+        instance.proxy = new Proxy({_: instance}, ComponentPublicInstanceProxyHandlers)
+    }
+}
+```
+componentPublicProperties.ts
+```
+import { ComponentInstance } from './component';
+
+const publicPropertiesMap: {[p: string | symbol]: (i: ComponentInstance) => any} = {
+    $el(i: ComponentInstance) {
+        return i.vnode.$el
+    }
+}
+
+export const ComponentPublicInstanceProxyHandlers = {
+    get({_: instance}: {_: ComponentInstance}, p: string | symbol, receiver: unknown) {
+        if (instance.setupState) {
+            const val = instance.setupState[p]
+            if (val) return val
+        }
+
+        const publicGetter = publicPropertiesMap[p]
+        if (publicGetter) {
+            return publicGetter(instance)
+        }
+    }
+
+```
+renderer.ts
+```
+function setupRenderEffect(instance: ComponentInstance, rootContainer: Element) {
+    ...
+    const initVNode = instance.render.call(instance.proxy)
+    ...
+}
+
 ```
 
 

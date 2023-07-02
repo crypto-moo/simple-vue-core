@@ -1,9 +1,11 @@
 import {h} from '../lib/simple-vue.esm.js'
+import Child from './Child.js';
 
 export default {
     render() {
         window.self = this
         return h('div', {}, [
+            h(Child, {count: 23}),
             h('p', {class: 'red'}, 'red p ' + this.msg),
             h('p', {class: 'red'}, 'red p'),
             h('p', {class: 'blue'}, 'blue p'),

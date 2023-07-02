@@ -1284,6 +1284,63 @@ function isEvent(key: string) {
     return /^on[A-Z]/.test(key)
 }
 ```
+### 5、实现组件props
+新增文件：componentProps.ts
+```
+import { ComponentInstance } from "./component";
+
+export function initProps(instance: ComponentInstance, props?: any) {
+    instance.props = props || {}
+}
+```
+component.ts
+```
+...
+import { shallowReadonly } from "../reactivity/reactive";
+import { initProps } from "./componentProps";
+
+export type ComponentInstance = {
+    ...
+    props?: any
+}
+...
+export function setupComponent(instance: ComponentInstance) {
+    initProps(instance, instance.vnode.props)
+    ...
+}
+
+function setupStatefulComponent(instance: ComponentInstance) {
+    ...
+    if (setup) {
+        const setupResult = setup(shallowReadonly(instance.props)) || {}
+        ...
+    }
+    ...
+}
+```
+componentPublicInstance.ts
+```
+import { hasOwn } from '../shared/index';
+...
+export const ComponentPublicInstanceProxyHandlers = {
+    get({_: instance}: {_: ComponentInstance}, p: string | symbol, receiver: unknown) {
+        if (hasOwn(instance.setupState, p)) {
+            return instance.setupState[p]
+        } else if (hasOwn(instance.props, p)) {
+            return instance.props[p]
+        }
+        ...
+    }
+}
+```
+shared/index.ts
+```
+...
+export const hasOwn = function(obj: any, key: PropertyKey) {
+    return Object.prototype.hasOwnProperty.call(obj, key)
+}
+```
+
 
 
 

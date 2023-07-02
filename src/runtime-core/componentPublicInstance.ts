@@ -1,3 +1,4 @@
+import { hasOwn } from '../shared/index';
 import { ComponentInstance } from './component';
 
 const publicPropertiesMap: {[p: string | symbol]: (i: ComponentInstance) => any} = {
@@ -8,9 +9,10 @@ const publicPropertiesMap: {[p: string | symbol]: (i: ComponentInstance) => any}
 
 export const ComponentPublicInstanceProxyHandlers = {
     get({_: instance}: {_: ComponentInstance}, p: string | symbol, receiver: unknown) {
-        if (instance.setupState) {
-            const val = instance.setupState[p]
-            if (val) return val
+        if (hasOwn(instance.setupState, p)) {
+            return instance.setupState[p]
+        } else if (hasOwn(instance.props, p)) {
+            return instance.props[p]
         }
 
         const publicGetter = publicPropertiesMap[p]

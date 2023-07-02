@@ -1,9 +1,12 @@
+import { shallowReadonly } from "../reactivity/reactive";
+import { initProps } from "./componentProps";
 import { ComponentPublicInstanceProxyHandlers } from "./componentPublicInstance";
 import { VNode } from "./vnode";
 
 export type ComponentInstance = {
     vnode: VNode
     type: any
+    props?: any
     proxy?: any
     setupState?: any
     render?: Function
@@ -12,12 +15,14 @@ export type ComponentInstance = {
 export function createComponentInstance(vnode: VNode): ComponentInstance {
     return {
         vnode,
-        type: vnode.type as any
+        type: vnode.type as any,
+        setupState: {}
     }
 }
 
 export function setupComponent(instance: ComponentInstance) {
-    // TODO: initProps
+    initProps(instance, instance.vnode.props)
+
     // TODO: initSlots
     
     setupStatefulComponent(instance)
@@ -31,7 +36,7 @@ function setupStatefulComponent(instance: ComponentInstance) {
         render
     } = Component
     if (setup) {
-        const setupResult = setup()
+        const setupResult = setup(shallowReadonly(instance.props)) || {}
         handleSetupResult(instance, setupResult)
     }
     if (render) {

@@ -17,7 +17,12 @@ export default {
                     h('li', {}, 'NO.3')
                 ])
             ]),
-            h('p', {class: 'blue'}, 'blue p'),
+            h('p', {
+                class: 'blue',
+                onClick() {
+                    console.log('click!!!');
+                }
+            }, 'blue p'),
         ])
     },
     setup() {

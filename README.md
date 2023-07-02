@@ -1263,6 +1263,27 @@ Array.isArray(vnode.children) ---> vnode.shapeFlag & ShapeFlags.ARRAY_CHILDREN
 ```
 
 ### 4、实现事件绑定
+renderer.ts
+```
+function mountElement(vnode: VNode, rootContainer: Element) {
+    ...
+    if (vnode.props) {
+        for (const key in vnode.props) {
+            const val = vnode.props[key]
+            if (isEvent(key)) {
+                node.addEventListener(key.substring(2).toLocaleLowerCase(), val)
+            } else {
+                node.setAttribute(key, val)
+            }
+        }
+    }
+    ...
+}
+
+function isEvent(key: string) {
+    return /^on[A-Z]/.test(key)
+}
+```
 
 
 

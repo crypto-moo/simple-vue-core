@@ -1218,4 +1218,51 @@ function setupRenderEffect(instance: ComponentInstance, rootContainer: Element) 
 
 ```
 
+### 3、实现shapeFlags
+/src/shared/shapeFlags.ts
+```
+export const enum ShapeFlags {
+    ELEMENT = 1,
+    STATEFULE_COMPONENT = 1 << 1,
+    TEXT_CHILDREN = 1 << 2,
+    ARRAY_CHILDREN = 1 << 3
+}
+```
+vnode.ts
+```
+import { ShapeFlags } from "../shared/ShapeFlags"
+
+export type VNode = {
+    ...
+    shapeFlag: ShapeFlags
+}
+
+export function createVNode(type: string | object, props?: object, children?: string | Array<any>): VNode {
+    return {
+        ...
+        shapeFlag: getShapeFlag(type, children),
+    }
+}
+
+function getShapeFlag(type: string | object, children?: string | Array<any>) {
+    let shapeFlag = typeof type === 'string' ? ShapeFlags.ELEMENT : ShapeFlags.STATEFULE_COMPONENT
+    if (typeof children === 'string') {
+        shapeFlag |= ShapeFlags.TEXT_CHILDREN
+    } else if (Array.isArray(children)) {
+        shapeFlag |= ShapeFlags.ARRAY_CHILDREN
+    }
+    return shapeFlag
+}
+```
+renderer.ts
+```
+typeof vnode.type === 'string' ---> vnode.shapeFlag & ShapeFlags.ELEMENT
+typeof vnode.type === 'object' ---> vnode.shapeFlag & ShapeFlags.STATEFULE_COMPONENT
+typeof vnode.children === 'string' ---> vnode.shapeFlag & ShapeFlags.TEXT_CHILDREN
+Array.isArray(vnode.children) ---> vnode.shapeFlag & ShapeFlags.ARRAY_CHILDREN
+```
+
+### 4、实现事件绑定
+
+
 

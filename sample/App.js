@@ -13,7 +13,7 @@ export default {
             h('p', {class: 'red'}, [
                 h('ul', {}, [
                     h('li', {}, 'NO.1 ' + this.msg),
-                    h('li', {}, 'NO.2'),
+                    h('li', {}, 'NO.2 ' + this.page),
                     h('li', {}, 'NO.3')
                 ])
             ]),
@@ -22,7 +22,8 @@ export default {
     },
     setup() {
         return {
-            msg: 'simple vue-core'
+            msg: 'simple vue-core',
+            page: 'i am page'
         }
     }
 }

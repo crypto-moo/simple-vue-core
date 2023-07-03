@@ -1341,6 +1341,69 @@ export const hasOwn = function(obj: any, key: PropertyKey) {
 }
 ```
 
+### 6、实现emit功能
+componentEmits.ts
+```
+import { camelCase, capitalized, toHandlerKey } from '../shared/index';
+import { ComponentInstance } from './component';
+
+export function emit(instance: ComponentInstance, event: string, ...args: any[]) {
+    const { props } = instance
+    const handlerKey = toHandlerKey(capitalized(camelCase(event)))
+    const handler = props[handlerKey]
+    if (handler) {
+        handler(...args)
+    }
+}
+```
+/shared/index.ts
+```
+component.ts
+```
+import { emit } from "./componentEmits";
+...
+
+export type ComponentInstance = {
+    ...
+    emit?: (event: string) => void 
+}
+
+export function createComponentInstance(vnode: VNode): ComponentInstance {
+    const instance: ComponentInstance = {
+        vnode,
+        type: vnode.type as any,
+        setupState: {},
+    }
+    // 这里绑定emit第一个参数为instance，让外面调用直接传入event和其他参数即可
+    instance.emit = emit.bind(null, instance)
+    return instance;
+}
+
+function setupStatefulComponent(instance: ComponentInstance) {
+    ...
+    if (setup) {
+        const setupResult = setup(shallowReadonly(instance.props), {emit: instance.emit}) || {}
+        ...
+    }
+}
+```
+...
+ // add-other ---> addOther
+ export const camelCase = (str: string) => {
+    return str.replace(/-(\w)/g, (_, c) => {
+        return c ? c.toUpperCase() : ''
+    })
+}
+// 首字母大写
+export const capitalized = (str: string) => {
+    return str.substring(0, 1).toUpperCase() + str.substring(1)
+}
+// 添加on
+export const toHandlerKey = (capitalizedStr: string) => {
+    return capitalizedStr ? 'on' + capitalizedStr : ''
+}
+```
+
 
 
 

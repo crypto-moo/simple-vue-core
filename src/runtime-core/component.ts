@@ -1,4 +1,5 @@
 import { shallowReadonly } from "../reactivity/reactive";
+import { emit } from "./componentEmits";
 import { initProps } from "./componentProps";
 import { ComponentPublicInstanceProxyHandlers } from "./componentPublicInstance";
 import { VNode } from "./vnode";
@@ -10,14 +11,18 @@ export type ComponentInstance = {
     proxy?: any
     setupState?: any
     render?: Function
+    emit?: (event: string) => void 
 }
 
 export function createComponentInstance(vnode: VNode): ComponentInstance {
-    return {
+    const instance: ComponentInstance = {
         vnode,
         type: vnode.type as any,
-        setupState: {}
+        setupState: {},
     }
+    // 这里绑定emit第一个参数为instance，让外面调用直接传入event和其他参数即可
+    instance.emit = emit.bind(null, instance)
+    return instance;
 }
 
 export function setupComponent(instance: ComponentInstance) {
@@ -36,7 +41,7 @@ function setupStatefulComponent(instance: ComponentInstance) {
         render
     } = Component
     if (setup) {
-        const setupResult = setup(shallowReadonly(instance.props)) || {}
+        const setupResult = setup(shallowReadonly(instance.props), {emit: instance.emit}) || {}
         handleSetupResult(instance, setupResult)
     }
     if (render) {

@@ -6,9 +6,27 @@ export default {
             onClick() {
 
             }
-        }, 'I am child, props count:' + this.count)
+        }, [
+            h('p', {}, 'I am child, props count:' + this.count),
+            h('button', {onClick: () => {
+                this.emitAdd()
+            }}, 'AddEmit'),
+            h('button', {onClick: () => {
+                this.emitAddOther()
+            }}, 'OtherEmit')
+        ])
     },
-    setup(props) {
+    setup(props, {emit}) {
         props.count += 20
+        const emitAdd = () => {
+            emit('add', 1, 2)
+        }
+        const emitAddOther = () => {
+            emit('add-other', 3, 4)
+        }
+        return {
+            emitAdd,
+            emitAddOther
+        }
     }
 }

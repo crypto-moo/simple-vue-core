@@ -1456,6 +1456,59 @@ export function renderSlots(slots: {[_: string]: Function}, key: string, props: 
 ```
 
 ### 8、实现Fragment、Text类型节点
+renderer.ts
+```
+function patch(vnode: VNode, rootContainer: Element) {
+    if (vnode.type === Fragment) {
+        processFragment(vnode, rootContainer)
+    } else if (vnode.type === Text) {
+        processText(vnode, rootContainer)
+    } ...
+}
+
+function processText(vnode: VNode, parent: Element) {
+    const el: any = document.createTextNode(vnode.children as string)
+    vnode.$el = el
+    parent.appendChild(el)
+}
+
+function processFragment(vnode: VNode, parent: Element) {
+    mountChildren(vnode.children as VNode[], parent)
+}
+```
+renderSlots.ts
+```
+import { isObject } from "../shared/index"
+import { Fragment, createVNode } from "./vnode"
+
+export function renderSlots(slots: {[_: string]: Function}, key: string, props: any) {
+    
+    const slot = slots[key]
+    if (slot && typeof slot === 'function') {
+        const slotChildren = slot(props)
+        return createVNode(Fragment, {}, Array.isArray(slotChildren) ? slotChildren : [slotChildren])
+    }
+    ...
+}
+```
+vnode.ts
+```
+export const Fragment = Symbol('Fragment')
+export const Text = Symbol('Text')
+
+export type VNode = {
+    type: string | object | Symbol
+    ...
+}
+
+export function createVNode(type: string | object | Symbol, props?: object, children?: string | Array<any>): VNode {
+    ...
+}
+
+export function createTextVNode(text: string) {
+    return createVNode(Text, {}, text)
+}
+```
 
 
 

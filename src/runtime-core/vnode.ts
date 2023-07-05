@@ -1,21 +1,28 @@
 import { ShapeFlags } from "../shared/ShapeFlags"
 import { isObject } from "../shared/index"
 
+export const Fragment = Symbol('Fragment')
+export const Text = Symbol('Text')
+
 export type VNode = {
-    type: string | object
+    type: string | object | Symbol
     shapeFlag: ShapeFlags
     props?: any
     children?: string | Array<VNode>
     $el?: Element
 }
 
-export function createVNode(type: string | object, props?: object, children?: string | Array<any>): VNode {
+export function createVNode(type: string | object | Symbol, props?: object, children?: string | Array<any>): VNode {
     return {
         type,
         shapeFlag: getShapeFlag(type, children),
         props,
         children
     }
+}
+
+export function createTextVNode(text: string) {
+    return createVNode(Text, {}, text)
 }
 
 function getShapeFlag(type: string | object, children?: string | Array<any>) {

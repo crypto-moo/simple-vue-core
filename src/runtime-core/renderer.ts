@@ -1,6 +1,6 @@
 import { ShapeFlags } from "../shared/ShapeFlags"
 import { ComponentInstance, createComponentInstance, setupComponent } from "./component"
-import { VNode } from "./vnode"
+import { Fragment, Text, VNode } from "./vnode"
 
 export function render(vnode: VNode, rootContainer: Element) {
     // 3.1 调用patch
@@ -8,12 +8,26 @@ export function render(vnode: VNode, rootContainer: Element) {
 }
 
 function patch(vnode: VNode, rootContainer: Element) {
-    if (vnode.shapeFlag & ShapeFlags.ELEMENT) {
+    if (vnode.type === Fragment) {
+        processFragment(vnode, rootContainer)
+    } else if (vnode.type === Text) {
+        processText(vnode, rootContainer)
+    } else if (vnode.shapeFlag & ShapeFlags.ELEMENT) {
         // console.log(vnode);
         processElement(vnode, rootContainer)
     } else if (vnode.shapeFlag & ShapeFlags.STATEFULE_COMPONENT) {
         processComponent(vnode, rootContainer)
     }
+}
+
+function processText(vnode: VNode, parent: Element) {
+    const el: any = document.createTextNode(vnode.children as string)
+    vnode.$el = el
+    parent.appendChild(el)
+}
+
+function processFragment(vnode: VNode, parent: Element) {
+    mountChildren(vnode.children as VNode[], parent)
 }
 
 function processComponent(vnode: VNode, rootContainer: Element) {
@@ -64,7 +78,7 @@ function isEvent(key: string) {
     return /^on[A-Z]/.test(key)
 }
 
-function mountChildren(children: VNode[], node: HTMLElement) {
+function mountChildren(children: VNode[], node: Element) {
     children.forEach((child) => {
         patch(child, node)
     })

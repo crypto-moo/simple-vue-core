@@ -1,4 +1,4 @@
-import {h} from '../lib/simple-vue.esm.js'
+import {h, createTextVNode} from '../lib/simple-vue.esm.js'
 import Child from './Child.js';
 
 export default {
@@ -10,7 +10,7 @@ export default {
             }, onAddOther(a, b) {
                 console.log('on add other:', a, b);
             }}, {
-                header: () => 123
+                header: () => createTextVNode('123')
             }),
             h(Child, {count: 23, onAdd(a, b) {
                 console.log('on add:', a, b);

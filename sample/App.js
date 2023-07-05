@@ -9,7 +9,17 @@ export default {
                 console.log('on add:', a, b);
             }, onAddOther(a, b) {
                 console.log('on add other:', a, b);
-            }}),
+            }}, {
+                header: () => 123
+            }),
+            h(Child, {count: 23, onAdd(a, b) {
+                console.log('on add:', a, b);
+            }, onAddOther(a, b) {
+                console.log('on add other:', a, b);
+            }}, {
+                footer: () => [h('p', {}, 'footer')],
+                header: ({age}) => h('p', {}, 'header' + age),
+            }),
             h('p', {class: 'red'}, 'red p ' + this.msg),
             h('p', {class: 'red'}, 'red p'),
             h('p', {class: 'blue'}, 'blue p'),

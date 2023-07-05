@@ -4,6 +4,9 @@ import { ComponentInstance } from './component';
 const publicPropertiesMap: {[p: string | symbol]: (i: ComponentInstance) => any} = {
     $el(i: ComponentInstance) {
         return i.vnode.$el
+    },
+    $slots(i: ComponentInstance) {
+        return i.slots
     }
 }
 

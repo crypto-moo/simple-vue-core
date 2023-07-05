@@ -1404,6 +1404,59 @@ export const toHandlerKey = (capitalizedStr: string) => {
 }
 ```
 
+### 7、实现slots
+component.ts
+```
+...
+import { initSlots } from "./componentSlots";
+
+export type ComponentInstance = {
+    ...
+    slots?: any
+}
+
+export function setupComponent(instance: ComponentInstance) {
+    ...
+    initSlots(instance, instance.vnode.children)
+    ...
+}
+```
+componentPublicInstance.ts
+```
+...
+const publicPropertiesMap: {[p: string | symbol]: (i: ComponentInstance) => any} = {
+    ...
+    $slots(i: ComponentInstance) {
+        return i.slots
+    }
+}
+```
+componentSlots.ts
+```
+import { ComponentInstance } from "./component"
+
+export function initSlots(instance: ComponentInstance, slots?: any) {
+    instance.slots = slots
+}
+```
+renderSlots.ts
+```
+import { isObject } from "../shared/index"
+import { createVNode } from "./vnode"
+
+export function renderSlots(slots: {[_: string]: Function}, key: string, props: any) {
+    
+    const slot = slots[key]
+    if (slot && typeof slot === 'function') {
+        const slotChildren = slot(props)
+        return createVNode('div', {}, isObject(slotChildren) ? Array.isArray(slotChildren) ? slotChildren : [slotChildren] : slotChildren.toString())
+    }
+    return createVNode('div')
+}
+```
+
+### 8、实现Fragment、Text类型节点
+
 
 
 

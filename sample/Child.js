@@ -1,4 +1,4 @@
-import { h } from "../lib/simple-vue.esm.js"
+import { h, renderSlots } from "../lib/simple-vue.esm.js"
 
 export default {
     render() {
@@ -13,7 +13,9 @@ export default {
             }}, 'AddEmit'),
             h('button', {onClick: () => {
                 this.emitAddOther()
-            }}, 'OtherEmit')
+            }}, 'OtherEmit'),
+            renderSlots(this.$slots, 'header', {age: 20}),
+            renderSlots(this.$slots, 'footer')
         ])
     },
     setup(props, {emit}) {

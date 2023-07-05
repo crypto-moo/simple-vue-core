@@ -1,4 +1,5 @@
 import { ShapeFlags } from "../shared/ShapeFlags"
+import { isObject } from "../shared/index"
 
 export type VNode = {
     type: string | object
@@ -23,6 +24,12 @@ function getShapeFlag(type: string | object, children?: string | Array<any>) {
         shapeFlag |= ShapeFlags.TEXT_CHILDREN
     } else if (Array.isArray(children)) {
         shapeFlag |= ShapeFlags.ARRAY_CHILDREN
+    }
+
+    if (shapeFlag & ShapeFlags.STATEFULE_COMPONENT) {
+        if (isObject(children)) {
+            shapeFlag |= ShapeFlags.SLOT_CHILDREN
+        }
     }
     return shapeFlag
 }

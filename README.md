@@ -1509,7 +1509,144 @@ export function createTextVNode(text: string) {
     return createVNode(Text, {}, text)
 }
 ```
+### 9、实现getCurrentInstance
+component.ts
+```
+function setupStatefulComponent(instance: ComponentInstance) {
+    ...
+    if (setup) {
+        setCurrentInstance(instance)
+        const setupResult = setup(shallowReadonly(instance.props), {emit: instance.emit}) || {}
+        setCurrentInstance(undefined)
+        ...
+    }
+}
 
+let currentInstance: ComponentInstance | undefined
+export function getCurrentInstance() {
+    return currentInstance
+}
 
+function setCurrentInstance(i?: ComponentInstance) {
+    currentInstance = i
+}
+```
+
+### 10、实现provide、inject
+apiInject.ts
+```
+import { getCurrentInstance } from "./component";
+// provide\inject必须在setup中使用
+export function provide(key: string, value: any) {
+  const instance = getCurrentInstance();
+  if (instance) {
+    let { provides } = instance;
+    if (provides) {
+      const parentProvides = instance.parent?.provides;
+      if (provides === parentProvides) {
+        // 当前的provides值为父provides重新创建一份，不是改的同一份
+        provides = instance.provides = Object.create(parentProvides);
+      }
+      provides[key] = value;
+    }
+  }
+}
+
+export function inject(key: string, defaultVal: any) {
+  const instance = getCurrentInstance();
+  if (instance) {
+    const provides = instance.parent?.provides
+    if (key in provides) {
+        return provides[key]
+    } else if (defaultVal) {
+        if (typeof defaultVal === 'function') {
+            return defaultVal()
+        }
+        return defaultVal
+    }
+  }
+}
+```
+component.ts
+```
+export type ComponentInstance = {
+    ...
+    provides: any
+    parent?: ComponentInstance
+}
+
+export function createComponentInstance(vnode: VNode, parent?: ComponentInstance): ComponentInstance {
+    const instance: ComponentInstance = {
+        ...
+        parent,
+        provides: parent ? parent.provides || {} : {}
+    }
+    ...
+}
+...
+
+let currentInstance: ComponentInstance | undefined
+export function getCurrentInstance() {
+    return currentInstance
+}
+
+function setCurrentInstance(i?: ComponentInstance) {
+    currentInstance = i
+}
+```
+render.ts patch所有子方法添加parent参数用来传递父instance
+```
+...
+export function render(vnode: VNode, rootContainer: Element) {
+    // 3.1 调用patch
+    patch(vnode, rootContainer, null)
+}
+
+function patch(vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
+    if (vnode.type === Fragment) {
+        processFragment(vnode, rootContainer, parent)
+    } else if (vnode.type === Text) {
+        processText(vnode, rootContainer)
+    } else if (vnode.shapeFlag & ShapeFlags.ELEMENT) {
+        // console.log(vnode);
+        processElement(vnode, rootContainer, parent)
+    } else if (vnode.shapeFlag & ShapeFlags.STATEFULE_COMPONENT) {
+        processComponent(vnode, rootContainer, parent)
+    }
+}
+
+function processFragment(vnode: VNode, el: Element, parent: ComponentInstance | null) {
+    mountChildren(vnode.children as VNode[], el, parent)
+}
+
+function processComponent(vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
+    mountComponent(vnode, rootContainer, parent)
+}
+
+function mountComponent(vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
+    const instance = createComponentInstance(vnode, parent as ComponentInstance)
+    ...
+}
+...
+
+function processElement(vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
+    mountElement(vnode, rootContainer, parent)
+}
+
+function mountElement(vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
+    
+    ...
+        mountChildren(vnode.children as VNode[], node, parent)
+    ...
+}
+
+...
+function mountChildren(children: VNode[], node: Element, parent: ComponentInstance | null) {
+    children.forEach((child) => {
+        patch(child, node, parent)
+    })
+}
+
+```
 
 

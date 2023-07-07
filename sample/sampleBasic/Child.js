@@ -1,4 +1,4 @@
-import { h, renderSlots } from "../lib/simple-vue.esm.js"
+import { getCurrentInstance, h, renderSlots } from "../../lib/simple-vue.esm.js"
 
 export default {
     render() {
@@ -19,6 +19,7 @@ export default {
         ])
     },
     setup(props, {emit}) {
+        console.log(getCurrentInstance());
         props.count += 20
         const emitAdd = () => {
             emit('add', 1, 2)

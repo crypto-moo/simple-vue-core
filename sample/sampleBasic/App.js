@@ -1,4 +1,4 @@
-import {h, createTextVNode} from '../lib/simple-vue.esm.js'
+import {h, createTextVNode, getCurrentInstance} from '../../lib/simple-vue.esm.js'
 import Child from './Child.js';
 
 export default {
@@ -42,6 +42,7 @@ export default {
         ])
     },
     setup() {
+        console.log(getCurrentInstance());
         return {
             msg: 'simple vue-core',
             page: 'i am page'

@@ -2,7 +2,9 @@ import {
     createRenderer
 } from '../../lib/simple-vue.esm.js'
 
-export const render = createRenderer({
+export const {
+    createApp
+} = createRenderer({
     createElement(type) {
         console.log('custom createElement', type);
         const rect = new PIXI.Graphics();

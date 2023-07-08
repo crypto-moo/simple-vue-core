@@ -1,5 +1,6 @@
 import { ShapeFlags } from "../shared/shapeFlags"
 import { ComponentInstance, createComponentInstance, setupComponent } from "./component"
+import { createAppApi } from "./createApp"
 import { Fragment, Text, VNode } from "./vnode"
 
 export type RendererOptions = {
@@ -96,7 +97,10 @@ export function createRenderer(options: RendererOptions) {
         })
     }
 
-    return render
+    return {
+        render,
+        createApp: createAppApi(render)
+    }
 }
 
 

@@ -1718,5 +1718,29 @@ export function createApp(rootComponent: object, customRender: Function) {
     }
 }
 ```
+> 使用组合api方式优化
+```
+// createApp.ts
+import { createVNode } from "./vnode"
+
+// 1、createApp，返回值为带有mount方法的对象
+export function createAppApi(render: Function) {
+    return function createApp(rootComponent: object) {
+        return {
+            mount(rootContainer: Element) {
+                // 2、创建根组件虚拟节点
+                const vnode = createVNode(rootComponent)
+                // 3、渲染基于根虚拟节点为dom
+                render(vnode, rootContainer)
+            }
+        }
+    }
+}
+
+// runtime-dom
+const app = createRenderer(options);
+export const { createApp } = app;
+```
+
 
 

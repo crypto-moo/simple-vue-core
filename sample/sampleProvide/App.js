@@ -32,7 +32,7 @@ const ProviderTwo = {
 
 const Injecter = {
     render() {
-        return h('div', {}, `header: ${this.header} - center: ${this.center} - footer: ${this.footer}`)
+        return h('div', { class: 'red' }, `header: ${this.header} - center: ${this.center} - footer: ${this.footer}`)
     },
     setup() {
         const header = inject('header')

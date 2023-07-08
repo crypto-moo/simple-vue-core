@@ -27,3 +27,7 @@ export const capitalized = (str: string) => {
 export const toHandlerKey = (capitalizedStr: string) => {
     return capitalizedStr ? 'on' + capitalizedStr : ''
 }
+
+export function isEvent(key: string) {
+    return /^on[A-Z]/.test(key)
+}

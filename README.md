@@ -1649,4 +1649,74 @@ function mountChildren(children: VNode[], node: Element, parent: ComponentInstan
 
 ```
 
+### 11、实现自定义渲染器custom renderer
+renderer.ts
+```
+export type RendererOptions = {
+    createElement: Function
+    patchProp: Function
+    insert: Function
+}
+// 把原来逻辑封装到createRenderer里，通过options传入渲染各阶段函数
+export function createRenderer(options: RendererOptions) {
+    const {
+        createElement,
+        patchProp,
+        insert
+    } = options
+
+    ...
+
+    return render
+}
+```
+把dom渲染逻辑提取到/src/runtime-dom/index.ts
+```
+import { RendererOptions, createRenderer } from "../runtime-core/renderer";
+import { isEvent } from "../shared/index";
+
+const options: RendererOptions = {
+  createElement(type: string) {
+    console.log('createElement!');
+    const node = document.createElement(type);
+    return node;
+  },
+  patchProp(node: Element, key: string, val: any) {
+    console.log('patchProp');
+    if (isEvent(key)) {
+      node.addEventListener(key.substring(2).toLocaleLowerCase(), val);
+    } else {
+      node.setAttribute(key, val);
+    }
+  },
+  insert(node: Element, rootContainer: Element) {
+    console.log('insert');
+    rootContainer.appendChild(node)
+  },
+};
+
+export const render = createRenderer(options);
+```
+createApp.ts
+```
+import { render } from "../runtime-dom/index"
+import { createVNode } from "./vnode"
+
+// 1、createApp，返回值为带有mount方法的对象
+export function createApp(rootComponent: object, customRender: Function) {
+    return {
+        mount(rootContainer: Element) {
+            // 2、创建根组件虚拟节点
+            const vnode = createVNode(rootComponent)
+            // 3、渲染基于根虚拟节点为dom
+            if (!!customRender) {
+                customRender(vnode, rootContainer)
+            } else {
+                render(vnode, rootContainer)
+            }
+        }
+    }
+}
+```
+
 

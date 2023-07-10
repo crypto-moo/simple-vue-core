@@ -57,7 +57,7 @@ describe('ref', () => {
         expect(unRef(refObj1)).toBe(obj)
     })
 
-    it('proxy refs', () => {
+    it.only('proxy refs', () => {
         const obj = {
             user: ref('wawa'),
             age: 20

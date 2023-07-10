@@ -22,5 +22,12 @@ export const ComponentPublicInstanceProxyHandlers = {
         if (publicGetter) {
             return publicGetter(instance)
         }
+    },
+    set({_: instance}: {_: ComponentInstance}, p: string | symbol, newVal: any, receiver: unknown) {
+        const { setupState } = instance
+        if (hasOwn(setupState, p)) {
+            setupState[p] = newVal
+        }
+        return true
     }
 }

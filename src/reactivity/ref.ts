@@ -44,7 +44,7 @@ export function isRef(refVal: RefImpl | any) {
 }
 
 export function unRef(refVal: RefImpl | any) {
-    return isRef(refVal) ? refVal.rawValue : refVal
+    return isRef(refVal) ? refVal.value : refVal
 }
 
 export function proxyRefs(refObj: any) {

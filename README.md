@@ -1784,3 +1784,37 @@ function patchProps(el: Element, oldProps: any, newProps: any) {
 }
 ```
 
+### 13、更新element的children（不包含Array to Array）
+renderer.ts
+```
+function updateElement(oldVNode: VNode, vnode: VNode, container: Element, parent: ComponentInstance | null) {
+    ...
+    patchChildren(oldVNode, vnode, el!, parent)
+}
+
+function patchChildren(oldVNode: VNode, vnode: VNode, el: Element, parent: ComponentInstance | null) {
+    const { shapeFlag: oldShapeFlag, children: oldC } = oldVNode
+    const { shapeFlag, children: c } = vnode
+
+    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+        if (c !== oldC) {
+            unmountChildren(oldC as VNode[])
+            hostSetElementText(el, vnode.children as string)
+        }
+    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        if (oldShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+            hostSetElementText(el, '')
+            mountChildren(vnode.children as VNode[], el, parent)
+        }
+    }
+}
+
+function unmountChildren(children: VNode[]) {
+    if (isObject(children)) {
+        children.forEach(child => {
+            hostRemove(child.$el)
+        })
+    }
+}
+```
+

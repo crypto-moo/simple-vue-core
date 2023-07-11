@@ -1,4 +1,5 @@
 import { effect } from "../reactivity/effect"
+import { isObject } from "../shared/index"
 import { ShapeFlags } from "../shared/shapeFlags"
 import { ComponentInstance, createComponentInstance, setupComponent } from "./component"
 import { createAppApi } from "./createApp"
@@ -8,13 +9,17 @@ export type RendererOptions = {
     createElement: Function
     patchProp: Function
     insert: Function
+    setElementText: Function
+    remove: Function
 }
 
 export function createRenderer(options: RendererOptions) {
     const {
         createElement: hostCreateElement,
         patchProp: hostPatchProp,
-        insert: hostInsert
+        insert: hostInsert,
+        setElementText: hostSetElementText,
+        remove: hostRemove,
     } = options
 
     function render(vnode: VNode, rootContainer: Element) {
@@ -91,6 +96,33 @@ export function createRenderer(options: RendererOptions) {
         const el = (vnode.$el = oldVNode.$el)
 
         patchProps(el!, oldProps, newProps)
+
+        patchChildren(oldVNode, vnode, el!, parent)
+    }
+
+    function patchChildren(oldVNode: VNode, vnode: VNode, el: Element, parent: ComponentInstance | null) {
+        const { shapeFlag: oldShapeFlag, children: oldC } = oldVNode
+        const { shapeFlag, children: c } = vnode
+
+        if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+            if (c !== oldC) {
+                unmountChildren(oldC as VNode[])
+                hostSetElementText(el, vnode.children as string)
+            }
+        } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+            if (oldShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+                hostSetElementText(el, '')
+                mountChildren(vnode.children as VNode[], el, parent)
+            }
+        }
+    }
+
+    function unmountChildren(children: VNode[]) {
+        if (isObject(children)) {
+            children.forEach(child => {
+                hostRemove(child.$el)
+            })
+        }
     }
 
     function patchProps(el: Element, oldProps: any, newProps: any) {

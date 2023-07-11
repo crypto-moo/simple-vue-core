@@ -22,6 +22,12 @@ const options: RendererOptions = {
     console.log("insert");
     rootContainer.appendChild(node);
   },
+  setElementText(el: Element, text: string) {
+    el.textContent = text
+  },
+  remove(el: Element) {
+    el.parentNode?.removeChild(el)
+  }
 };
 
 const app = createRenderer(options);

@@ -1741,6 +1741,46 @@ export function createAppApi(render: Function) {
 const app = createRenderer(options);
 export const { createApp } = app;
 ```
+### 12、更新Element流程以及props更新逻辑
+renderer.ts 渲染相关函数都添加oldVNode参数，以做比较
+```
+function processElement(oldVNode: VNode | null, vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
+    if (!oldVNode) {
+        mountElement(vnode, rootContainer, parent)
+    } else {
+        updateElement(oldVNode, vnode, rootContainer, parent)
+    }
+}
 
+function updateElement(oldVNode: VNode, vnode: VNode, container: Element, parent: ComponentInstance | null) {
+    console.log('update element!', oldVNode.props, vnode.props);
+    const oldProps = oldVNode.props
+    const newProps = vnode.props
 
+    const el = (vnode.$el = oldVNode.$el)
+
+    patchProps(el!, oldProps, newProps)
+}
+
+function patchProps(el: Element, oldProps: any, newProps: any) {
+    if (oldProps === newProps) return
+    for (const key in newProps) {
+        if (Object.prototype.hasOwnProperty.call(newProps, key)) {
+            const prop = newProps[key]
+            const oldProp = oldProps[key]
+            if (prop !== oldProp) {
+                hostPatchProp(el, key, prop)
+            }
+        }
+    }
+    for (const key in oldProps) {
+        if (Object.prototype.hasOwnProperty.call(oldProps, key)) {
+            const prop = oldProps[key];
+            if (!(key in newProps)) {
+                hostPatchProp(el, key, null)
+            }
+        }
+    }
+}
+```
 

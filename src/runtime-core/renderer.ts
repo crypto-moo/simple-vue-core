@@ -12,9 +12,9 @@ export type RendererOptions = {
 
 export function createRenderer(options: RendererOptions) {
     const {
-        createElement,
-        patchProp,
-        insert
+        createElement: hostCreateElement,
+        patchProp: hostPatchProp,
+        insert: hostInsert
     } = options
 
     function render(vnode: VNode, rootContainer: Element) {
@@ -42,7 +42,7 @@ export function createRenderer(options: RendererOptions) {
     }
     
     function processFragment(oldVNode: VNode | null, vnode: VNode, el: Element, parent: ComponentInstance | null) {
-        mountChildren(oldVNode, vnode.children as VNode[], el, parent)
+        mountChildren(vnode.children as VNode[], el, parent)
     }
     
     function processComponent(oldVNode: VNode | null, vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
@@ -60,7 +60,7 @@ export function createRenderer(options: RendererOptions) {
     
     function setupRenderEffect(instance: ComponentInstance, rootContainer: Element) {
         if (!instance.render) return
-        if (instance.isMouted) {
+        if (instance.isMounted) {
             const subTree = instance.render.call(instance.proxy)
             const prevSubTree = instance.subTree!
             patch(prevSubTree, subTree, rootContainer, instance)
@@ -71,27 +71,62 @@ export function createRenderer(options: RendererOptions) {
             const initVNode = (instance.subTree = instance.render.call(instance.proxy))
             patch(null, initVNode, rootContainer, instance)
             instance.vnode.$el = initVNode.$el
-            instance.isMouted = true
+            instance.isMounted = true
         }
     }
     
     function processElement(oldVNode: VNode | null, vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
-        mountElement(oldVNode, vnode, rootContainer, parent)
+        if (!oldVNode) {
+            mountElement(vnode, rootContainer, parent)
+        } else {
+            updateElement(oldVNode, vnode, rootContainer, parent)
+        }
+    }
+
+    function updateElement(oldVNode: VNode, vnode: VNode, container: Element, parent: ComponentInstance | null) {
+        console.log('update element!', oldVNode.props, vnode.props);
+        const oldProps = oldVNode.props
+        const newProps = vnode.props
+
+        const el = (vnode.$el = oldVNode.$el)
+
+        patchProps(el!, oldProps, newProps)
+    }
+
+    function patchProps(el: Element, oldProps: any, newProps: any) {
+        if (oldProps === newProps) return
+        for (const key in newProps) {
+            if (Object.prototype.hasOwnProperty.call(newProps, key)) {
+                const prop = newProps[key]
+                const oldProp = oldProps[key]
+                if (prop !== oldProp) {
+                    hostPatchProp(el, key, prop)
+                }
+            }
+        }
+        for (const key in oldProps) {
+            if (Object.prototype.hasOwnProperty.call(oldProps, key)) {
+                const prop = oldProps[key];
+                if (!(key in newProps)) {
+                    hostPatchProp(el, key, null)
+                }
+            }
+        }
     }
     
-    function mountElement(oldVNode: VNode | null, vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
+    function mountElement(vnode: VNode, rootContainer: Element, parent: ComponentInstance | null) {
         // const node = document.createElement(vnode.type as string)
-        const node = createElement(vnode.type)
+        const node = hostCreateElement(vnode.type)
         vnode.$el = node
         if (vnode.shapeFlag & ShapeFlags.TEXT_CHILDREN) {
             node.textContent = vnode.children as string
         } else if (vnode.shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-            mountChildren(oldVNode, vnode.children as VNode[], node, parent)
+            mountChildren(vnode.children as VNode[], node, parent)
         }
         if (vnode.props) {
             for (const key in vnode.props) {
                 const val = vnode.props[key]
-                patchProp(node, key, val)
+                hostPatchProp(node, key, val)
                 // if (isEvent(key)) {
                 //     node.addEventListener(key.substring(2).toLocaleLowerCase(), val)
                 // } else {
@@ -100,12 +135,12 @@ export function createRenderer(options: RendererOptions) {
             }
         }
         // rootContainer.appendChild(node)
-        insert(node, rootContainer)
+        hostInsert(node, rootContainer)
     }
     
-    function mountChildren(oldVNode: VNode | null, children: VNode[], node: Element, parent: ComponentInstance | null) {
+    function mountChildren(children: VNode[], node: Element, parent: ComponentInstance | null) {
         children.forEach((child) => {
-            patch(oldVNode, child, node, parent)
+            patch(null, child, node, parent)
         })
     }
 

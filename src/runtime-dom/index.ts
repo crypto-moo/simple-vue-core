@@ -11,6 +11,9 @@ const options: RendererOptions = {
     console.log("patchProp");
     if (isEvent(key)) {
       node.addEventListener(key.substring(2).toLocaleLowerCase(), val);
+    } else if (val === null || val === undefined) {
+      // 设置为null或者undefined，删除该属性
+      node.removeAttribute(key)
     } else {
       node.setAttribute(key, val);
     }

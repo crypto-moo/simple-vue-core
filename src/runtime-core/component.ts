@@ -17,7 +17,7 @@ export type ComponentInstance = {
     slots?: any
     provides: any
     parent?: ComponentInstance
-    isMouted?: boolean
+    isMounted?: boolean
     subTree?: VNode
 }
 
